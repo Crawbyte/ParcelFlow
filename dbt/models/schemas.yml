@@ -1,0 +1,44 @@
+version: 2
+models:
+- name: stg_warehouses
+columns:
+- name: warehouse_id
+tests: [unique, not_null]
+- name: stg_vehicles
+columns:
+- name: vehicle_id
+tests: [unique, not_null]
+- name: warehouse_id
+tests:
+- not_null
+- relationships:
+to: ref('stg_warehouses')
+field: warehouse_id
+- name: stg_grid
+columns:
+- name: cell_id
+tests: [unique, not_null]
+- name: stg_orders
+columns:
+- name: order_id
+tests: [unique, not_null]
+- name: pickup_warehouse_id
+tests:
+- not_null
+- relationships:
+to: ref('stg_warehouses')
+field: warehouse_id
+- name: dropoff_cell_id
+tests:
+- not_null
+- relationships:
+to: ref('stg_grid')
+field: cell_id
+- name: stg_events
+columns:
+- name: event_id
+tests: [unique, not_null]
+- name: fct_orders
+columns:
+- name: order_id
+tests: [unique, not_null]

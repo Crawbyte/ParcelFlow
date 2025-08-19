@@ -1,0 +1,11 @@
+{
+"version": "1.0.0",
+"type": "Dashboards",
+"dashboards": [
+{
+"dashboard_title": "ParcelFlow — SLA & Capacity",
+"position_json": "{}",
+"metadata": {"timed_refresh_immune_slices": [], "expanded_slices": {}}
+}
+]
+}
