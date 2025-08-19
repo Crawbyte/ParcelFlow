@@ -1,0 +1,50 @@
+version: "3.9"
+services:
+postgres:
+image: postgres:15
+container_name: parcelflow_pg
+environment:
+POSTGRES_USER: parcelflow
+POSTGRES_PASSWORD: parcelflow
+POSTGRES_DB: parcelflow
+ports:
+- "5432:5432"
+volumes:
+- pgdata:/var/lib/postgresql/data
+- ./scripts/init:/docker-entrypoint-initdb.d
+
+
+dbt:
+image: ghcr.io/dbt-labs/dbt-postgres:1.8.2
+container_name: parcelflow_dbt
+depends_on:
+- postgres
+environment:
+DBT_HOST: postgres
+DBT_USER: parcelflow
+DBT_PASSWORD: parcelflow
+DBT_DBNAME: parcelflow
+DBT_SCHEMA: marts
+working_dir: /usr/app
+volumes:
+- ./dbt:/usr/app
+command: ["bash","-lc","dbt deps && dbt run --profiles-dir . && dbt test --profiles-dir ."]
+
+
+superset:
+image: apache/superset:latest
+container_name: parcelflow_superset
+depends_on:
+- postgres
+environment:
+SUPERSET_SECRET_KEY: "parcelflow_secret_key"
+SUPERSET_ENV: production
+ports:
+- "8088:8088"
+volumes:
+- ./superset:/app/superset_home/extras
+command: ["bash","-lc","/app/superset_home/extras/bootstrap.sh"]
+
+
+volumes:
+pgdata:
