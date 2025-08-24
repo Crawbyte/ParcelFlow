@@ -1,0 +1,49 @@
+name: ParcelFlow CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Start PostgreSQL container
+        run: |
+          docker compose up -d postgres
+          
+      - name: Wait for PostgreSQL to be ready
+        run: |
+          # Wait for PostgreSQL to be healthy
+          echo "Waiting for PostgreSQL to be ready..."
+          timeout 60s bash -c 'until docker exec parcelflow_pg pg_isready -U parcelflow; do sleep 2; done'
+          echo "PostgreSQL is ready"
+      
+      - name: Run dbt models
+        run: |
+          docker compose run --rm dbt dbt run --profiles-dir .
+      
+      - name: Run dbt tests
+        run: |
+          docker compose run --rm dbt dbt test --profiles-dir .
+      
+      - name: Run smoke tests
+        run: |
+          # Execute smoke tests
+          chmod +x scripts/smoke.sh
+          docker compose up -d
+          sleep 10 # Give services time to start
+          ./scripts/smoke.sh
+          
+      - name: Cleanup
+        if: always()
+        run: docker compose down -v

@@ -1,24 +1,30 @@
 version: "3.9"
 services:
-postgres:
-image: postgres:15
-container_name: parcelflow_pg
-environment:
-POSTGRES_USER: parcelflow
-POSTGRES_PASSWORD: parcelflow
-POSTGRES_DB: parcelflow
-ports:
-- "5432:5432"
-volumes:
-- pgdata:/var/lib/postgresql/data
-- ./scripts/init:/docker-entrypoint-initdb.d
+  postgres:
+    image: postgres:15
+    container_name: parcelflow_pg
+    environment:
+      POSTGRES_USER: parcelflow
+      POSTGRES_PASSWORD: parcelflow
+      POSTGRES_DB: parcelflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./scripts/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "parcelflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 
 dbt:
-image: ghcr.io/dbt-labs/dbt-postgres:1.8.2
-container_name: parcelflow_dbt
-depends_on:
-- postgres
+  image: ghcr.io/dbt-labs/dbt-postgres:1.8.2
+  container_name: parcelflow_dbt
+  depends_on:
+    postgres:
+      condition: service_healthy
 environment:
 DBT_HOST: postgres
 DBT_USER: parcelflow
@@ -32,13 +38,17 @@ command: ["bash","-lc","dbt deps && dbt run --profiles-dir . && dbt test --profi
 
 
 superset:
-image: apache/superset:latest
-container_name: parcelflow_superset
-depends_on:
-- postgres
+  image: apache/superset:latest
+  container_name: parcelflow_superset
+  depends_on:
+    postgres:
+      condition: service_healthy
+    dbt:
+      condition: service_completed_successfully
 environment:
-SUPERSET_SECRET_KEY: "parcelflow_secret_key"
-SUPERSET_ENV: production
+      SUPERSET_SECRET_KEY: "parcelflow_secret_key"
+      SUPERSET_ENV: production
+      PARCELFLOW_DB_URI: postgresql+psycopg2://parcelflow:parcelflow@postgres:5432/parcelflow
 ports:
 - "8088:8088"
 volumes:
