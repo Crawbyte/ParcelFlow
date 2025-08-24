@@ -4,10 +4,10 @@ config-version: 2
 profile: parcelflow
 model-paths: ["models"]
 models:
-parcelflow:
-staging:
-+schema: staging
-+materialized: view
-marts:
-+schema: marts
-+materialized: view
+  parcelflow:
+    staging:
+      +schema: staging
+      +materialized: view
+    marts:
+      +schema: marts
+      +materialized: view

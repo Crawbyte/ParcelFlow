@@ -4,6 +4,9 @@
 HH ?= 09
 MM ?= 00
 
+# Check for docker command and determine docker compose command
+DOCKER_COMPOSE := $(shell if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then echo "docker compose"; elif command -v docker-compose >/dev/null 2>&1; then echo "docker-compose"; else echo "echo 'Error: Neither docker compose nor docker-compose found in PATH' >&2; exit 1"; fi)
+
 # Help target
 help:
 	@echo "ParcelFlow Make Commands:"
@@ -17,16 +20,16 @@ help:
 
 # Start containers
 up:
-	docker compose up
+	$(DOCKER_COMPOSE) up
 
 # Stop containers and remove volumes
 down:
-	docker compose down -v
+	$(DOCKER_COMPOSE) down -v
 
 # Run dbt models and tests
 dbt:
-	docker compose run --rm dbt dbt run --profiles-dir .
-	docker compose run --rm dbt dbt test --profiles-dir .
+	$(DOCKER_COMPOSE) run --rm dbt run --profiles-dir .
+	$(DOCKER_COMPOSE) run --rm dbt test --profiles-dir .
 
 # Load seed data
 seed:

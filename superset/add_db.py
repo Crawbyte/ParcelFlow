@@ -10,7 +10,7 @@ SQLA_URI = os.environ.get(
 
 
 with app.app_context():
-if not db.session.query(Database).filter_by(database_name="ParcelFlow").first():
-dbobj = Database(database_name="ParcelFlow", sqlalchemy_uri=SQLA_URI)
-db.session.add(dbobj)
-db.session.commit()
+    if not db.session.query(Database).filter_by(database_name="ParcelFlow").first():
+        dbobj = Database(database_name="ParcelFlow", sqlalchemy_uri=SQLA_URI)
+        db.session.add(dbobj)
+        db.session.commit()

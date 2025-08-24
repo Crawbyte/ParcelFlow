@@ -11,50 +11,43 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./scripts/init:/docker-entrypoint-initdb.d
-    healthcheck:
-      test: ["CMD", "pg_isready", "-U", "parcelflow"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      - ./scripts/init/01_schema_and_seed.sql:/docker-entrypoint-initdb.d/01_schema_and_seed.sql
+    # Simple healthcheck removed to prevent WSL compatibility issues
 
 
-dbt:
-  image: ghcr.io/dbt-labs/dbt-postgres:1.8.2
-  container_name: parcelflow_dbt
-  depends_on:
-    postgres:
-      condition: service_healthy
-environment:
-DBT_HOST: postgres
-DBT_USER: parcelflow
-DBT_PASSWORD: parcelflow
-DBT_DBNAME: parcelflow
-DBT_SCHEMA: marts
-working_dir: /usr/app
-volumes:
-- ./dbt:/usr/app
-command: ["bash","-lc","dbt deps && dbt run --profiles-dir . && dbt test --profiles-dir ."]
+  dbt:
+    image: ghcr.io/dbt-labs/dbt-postgres:1.8.2
+    container_name: parcelflow_dbt
+    depends_on:
+      - postgres
+    environment:
+      DBT_HOST: postgres
+      DBT_USER: parcelflow
+      DBT_PASSWORD: parcelflow
+      DBT_DBNAME: parcelflow
+      DBT_SCHEMA: marts
+    working_dir: /usr/app
+    volumes:
+      - ./dbt:/usr/app
+    command: ["run", "--profiles-dir", "."]
 
 
-superset:
-  image: apache/superset:latest
-  container_name: parcelflow_superset
-  depends_on:
-    postgres:
-      condition: service_healthy
-    dbt:
-      condition: service_completed_successfully
-environment:
+  superset:
+    image: apache/superset:latest
+    container_name: parcelflow_superset
+    depends_on:
+      - postgres
+      - dbt
+    environment:
       SUPERSET_SECRET_KEY: "parcelflow_secret_key"
       SUPERSET_ENV: production
       PARCELFLOW_DB_URI: postgresql+psycopg2://parcelflow:parcelflow@postgres:5432/parcelflow
-ports:
-- "8088:8088"
-volumes:
-- ./superset:/app/superset_home/extras
-command: ["bash","-lc","/app/superset_home/extras/bootstrap.sh"]
+    ports:
+      - "8088:8088"
+    volumes:
+      - ./superset:/app/superset_home/extras
+    command: ["/bin/bash", "-c", "sleep 10 && /app/superset_home/extras/bootstrap.sh"]
 
 
 volumes:
-pgdata:
+  pgdata:

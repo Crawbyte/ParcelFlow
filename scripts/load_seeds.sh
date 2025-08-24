@@ -14,7 +14,11 @@ load_csv() {
   local filename=$(basename "$file" .csv)
   
   # Use psql to copy data from CSV to table
-  PGPASSWORD=parcelflow psql -h localhost -U parcelflow -d parcelflow -c "\
+  # Extract host from PGURL
+  local host=$(echo $PGURL | sed -n 's/.*@\([^:]*\).*/\1/p')
+  host=${host:-"localhost"}
+  
+  PGPASSWORD=parcelflow psql -h $host -U parcelflow -d parcelflow -c "\
     TRUNCATE raw.raw_${table}; \
     COPY raw.raw_${table} FROM STDIN WITH CSV HEADER;" < "$file"
   

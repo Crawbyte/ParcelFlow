@@ -1,13 +1,13 @@
 parcelflow:
-target: dev
-outputs:
-dev:
-type: postgres
-host: {{ env_var('DBT_HOST', 'postgres') }}
-user: {{ env_var('DBT_USER', 'parcelflow') }}
-password: {{ env_var('DBT_PASSWORD', 'parcelflow') }}
-dbname: {{ env_var('DBT_DBNAME', 'parcelflow') }}
-schema: {{ env_var('DBT_SCHEMA', 'marts') }}
-port: 5432
-threads: 4
-keepalives_idle: 0
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('DBT_HOST', 'postgres') }}"
+      user: "{{ env_var('DBT_USER', 'parcelflow') }}"
+      password: "{{ env_var('DBT_PASSWORD', 'parcelflow') }}"
+      dbname: "{{ env_var('DBT_DBNAME', 'parcelflow') }}"
+      schema: "{{ env_var('DBT_SCHEMA', 'marts') }}"
+      port: 5432
+      threads: 4
+      keepalives_idle: 0

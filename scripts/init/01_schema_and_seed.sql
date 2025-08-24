@@ -69,6 +69,73 @@ delivered_at TIMESTAMP NULL,
 status TEXT NOT NULL
 );
 TRUNCATE raw.raw_orders;
-WITH params AS (
-SELECT TIMESTAMP '2025-01-01 00:00:00' AS day_start,
-SELECT 'depot_down','low', TIMESTAMP '2025-01-01 08:30', TIMESTAMP '2025-01-01 09:15', 3, NULL;
+
+-- Generate synthetic orders
+-- Morning peak (8:00-10:00) and afternoon peak (16:00-18:00)
+WITH time_series AS (
+  SELECT generate_series(
+    TIMESTAMP '2025-01-01 00:00:00',
+    TIMESTAMP '2025-01-01 23:59:59',
+    INTERVAL '1 minute'
+  ) AS created_at
+),
+order_counts AS (
+  SELECT 
+    ts.created_at,
+    CASE
+      WHEN EXTRACT(HOUR FROM ts.created_at) BETWEEN 8 AND 9 THEN 5
+      WHEN EXTRACT(HOUR FROM ts.created_at) BETWEEN 16 AND 17 THEN 4
+      WHEN EXTRACT(HOUR FROM ts.created_at) BETWEEN 10 AND 15 THEN 2
+      ELSE 1
+    END AS order_count
+  FROM time_series ts
+)
+INSERT INTO raw.raw_orders (
+  created_at,
+  pickup_warehouse_id,
+  dropoff_cell_id,
+  items,
+  promised_at,
+  delivered_at,
+  status
+)
+SELECT
+  oc.created_at,
+  (1 + floor(random() * 3))::int AS pickup_warehouse_id,
+  (1 + floor(random() * 100))::int AS dropoff_cell_id,
+  (1 + floor(random() * 5))::int AS items,
+  oc.created_at + INTERVAL '30 minutes' AS promised_at,
+  CASE
+    WHEN random() < 0.7 THEN oc.created_at + INTERVAL '25 minutes'
+    WHEN random() < 0.9 THEN oc.created_at + INTERVAL '35 minutes'
+    ELSE NULL
+  END AS delivered_at,
+  CASE
+    WHEN random() < 0.7 THEN 'delivered'
+    WHEN random() < 0.9 THEN 'in_transit'
+    ELSE 'assigned'
+  END AS status
+FROM order_counts oc
+WHERE random() < 0.2;  -- Only generate about 20% of the potential orders
+
+-- Create events table if it doesn't exist
+CREATE TABLE IF NOT EXISTS raw.raw_events (
+  event_id SERIAL PRIMARY KEY,
+  event_type TEXT NOT NULL,
+  priority TEXT NOT NULL,
+  event_start TIMESTAMP NOT NULL,
+  event_end TIMESTAMP NOT NULL,
+  warehouse_id INT NULL,
+  vehicle_id INT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Add sample events
+TRUNCATE raw.raw_events;
+INSERT INTO raw.raw_events (
+  event_type, priority, event_start, event_end, warehouse_id, vehicle_id
+)
+VALUES
+  ('depot_down', 'high', TIMESTAMP '2025-01-01 08:30:00', TIMESTAMP '2025-01-01 09:15:00', 3, NULL),
+  ('vehicle_maintenance', 'medium', TIMESTAMP '2025-01-01 10:00:00', TIMESTAMP '2025-01-01 11:30:00', NULL, 5),
+  ('congestion', 'low', TIMESTAMP '2025-01-01 16:00:00', TIMESTAMP '2025-01-01 18:00:00', NULL, NULL)
